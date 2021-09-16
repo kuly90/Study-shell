@@ -50,17 +50,6 @@ EXIT
 EOF
 }
 
-#check data
-echo $count
-if [ $count == 0 ]; then
-    echo "Database is being re-imported"
-    no_data
-else
-    list=$(expr $count - 1)
-    echo "Database is OK"
-    select_data
-fi
-
 # output log when insert data
 function insert_data() {
     ${DB_Connect} <<EOF >insert_data_$current_date-$1.log
@@ -73,15 +62,24 @@ EXIT
 EOF
 }
 
-i=1
-for value in ${dataResult}
-do
-    id=$i
-    customer_name[$i]=${value}
-    customer_name=${customer_name[$i]}
-    insert_data $id $customer_name
-    let i+=1
-    echo $customer_name
-done
-
+#check data
+echo $count
+if [ $count == 0 ]; then
+    echo "Database is being re-imported"
+    no_data
+else
+    list=$(expr $count - 1)
+    echo "Database is OK"
+    select_data
+    i=1
+    for value in ${dataResult}
+    do
+        id=$i
+        customer_name[$i]=${value}
+        customer_name=${customer_name[$i]}
+        insert_data $id $customer_name
+        let i+=1
+        echo $customer_name
+    done
+fi
 
