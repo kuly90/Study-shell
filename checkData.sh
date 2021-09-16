@@ -6,16 +6,26 @@ DB_Hostname="localhost"
 DB_Port="1521"
 DB_SID="ORCL"
 DB_Connect="sqlplus -S ${DB_UserName}/${DB_Password}@//${DB_Hostname}:${DB_Port}/${DB_SID}"
-DB_SQL_COUNT_QUERY="select count(*) from orders;"
-DB_SQL_DATA_QUERY="select * from orders ORDER BY ORDER_ID ;"
+DB_SQL_COUNT_QUERY="select count(*) from customers;"
+DB_SQL_DATA_QUERY="select customer_name from customers ORDER BY customer_name;"
 
-# get data from ABC.customers
+# get count data from ABC.customers
 count=`${DB_Connect} <<EOF
 set feedback off
 set heading off
 set pagesize 0
 set tab off
 ${DB_SQL_COUNT_QUERY}
+exit
+EOF`
+
+# get data from ABC.customers
+dataResult=`${DB_Connect} <<EOF
+set feedback off
+set heading off
+set pagesize 0
+set tab off
+${DB_SQL_DATA_QUERY}
 exit
 EOF`
 
@@ -34,20 +44,44 @@ function select_data() {
     set lines 12345 pages 12345;
     col username for a30;
     col open_mode for a30;
-
     ${DB_SQL_DATA_QUERY}
 
 EXIT
 EOF
 }
 
+#check data
 echo $count
 if [ $count == 0 ]; then
     echo "Database is being re-imported"
     no_data
 else
+    list=$(expr $count - 1)
     echo "Database is OK"
     select_data
 fi
+
+# output log when insert data
+function insert_data() {
+    ${DB_Connect} <<EOF >insert_data_$current_date-$1.log
+    set lines 12345 pages 12345;
+    col username for a30;
+    col open_mode for a30;
+    INSERT INTO orders VALUES($1, '$2', 'AAA');
+
+EXIT
+EOF
+}
+
+i=1
+for value in ${dataResult}
+do
+    id=$i
+    customer_name[$i]=${value}
+    customer_name=${customer_name[$i]}
+    insert_data $id $customer_name
+    let i+=1
+    echo $customer_name
+done
 
 
