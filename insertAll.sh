@@ -29,60 +29,37 @@ ${DB_SQL_DATA_QUERY}
 exit
 EOF`
 
-# output log when no data found
-function no_data() {
-    cat <<- EOF >no_data_$current_date.log
-    No Data Found For SQL_QUERY:
-    ${DB_SQL_COUNT_QUERY}
-    
-EOF
-}
-
-# output log when find data
-function select_data() {
-    ${DB_Connect} <<EOF >result_data_$current_date.log
-    set lines 12345 pages 12345;
-    col username for a30;
-    col open_mode for a30;
-    ${DB_SQL_DATA_QUERY}
-
-EXIT
-EOF
-}
-
 # output log when insert data
-function insert_data() {
-    ${DB_Connect} <<EOF >insert_data_$current_date-$1.log
+function insert_all_data() {
+    ${DB_Connect} <<EOF >insert_all_data_$current_date.log
     set lines 12345 pages 12345;
     col username for a30;
     col open_mode for a30;
-    INSERT INTO orders VALUES($1, '$2', 'AAA');
+    INSERT all
+        INTO ABCDEF.shipers VALUES ($1, '$2', 'AAA')
+        INTO ABCDEF.orders VALUES ($1, '$2', 'AAA')
+    SELECT * FROM dual;
 
 EXIT
 EOF
 }
-
-listCusName=();
-listCity=();
 
 #check data
 echo $count
 if [ $count == 0 ]; then
     echo "Database is being re-imported"
-    no_data
 else
-    list=$(expr $count - 1)
     echo "Database is OK"
-    select_data
+    
     i=1
     for value in ${dataResult}
     do
         id=$i
         customer_name[$i]=${value}
         customer_name=${customer_name[$i]}
-        insert_data $id $customer_name
+        echo "customer_name[$i] = ${customer_name[$i]}"
+        insert_all_data $id $customer_name
         let i+=1
-        echo $customer_name
+        
     done
 fi
-
