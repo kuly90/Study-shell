@@ -1,14 +1,8 @@
 #!/bin/bash
-current_date=$(date +%Y-%m-%d)
-DB_UserName="ABC"
-DB_Password="123456"
-DB_Hostname="localhost"
-DB_Port="1521"
-DB_SID="ORCL"
-DB_Connect="sqlplus -S ${DB_UserName}/${DB_Password}@//${DB_Hostname}:${DB_Port}/${DB_SID}"
+source common/common.sh
+source SQL/bulkInsert.sh
+
 DB_SQL_COUNT_QUERY="select count(*) from customers;"
-DB_SQL_DATA_QUERY="select customer_name, city from customers ORDER BY customer_id;"
-SQL_FILE="SQL/bulkInsert.sql"
 # get count data from ABC.customers
 count=`${DB_Connect} <<EOF
 set feedback off
@@ -26,7 +20,8 @@ function bulk_insert_by_file() {
     set lines 12345 pages 12345;
     col username for a30;
     col open_mode for a30;
-    execute ${SQL_FILE};
+    SET SERVEROUTPUT ON;
+    execute ${SQL}
     commit;
 
 EXIT
@@ -38,5 +33,6 @@ echo $count
 if [ $count == 0 ]; then
     echo "Database is being re-imported"
 else
+    echo $SQL
     bulk_insert_by_file
 fi
