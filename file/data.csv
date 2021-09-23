@@ -1,0 +1,4 @@
+tateya_id,heya_id,bukken_shbt_kbn,aps_karidome_moshikomi_flg,aps_moshikomi_ng_flg,karidome_flg,karidome_ten_cd,kushitsu_chk_ymdhms,kushitsu_chk_ten_cd,kushitsu_chk_user_id,nyukyo_kano_date_kbn,nyukyo_kano_ymd,nyukyo_kano_ym,nyukyo_kano_jun_kbn,kushitsu_jokyo_kbn,cre_tmstmp,cre_user_cd,cre_ten_cd,cre_kigyo_cd,cre_kigyo_grp_cd,upd_tmstmp,upd_user_cd,upd_ten_cd,del_flg,ver_no
+123,1111,1,1,1,1,01CD,20210101,ABCD,123456,1,2021-01-01,202101,1,1,2021-01-01,33333,1234,4321,1234,2021-01-01,123456,1234,1,1
+124,2222,1,1,1,1,01CD,20210102,ABCD,123456,1,2021-01-02,202102,1,1,2021-01-02,33334,1235,4322,1235,2021-01-02,123456,1234,1,1
+125,3333,,,,,01CD,20210103,ABCD,123456,1,2021-01-03,202103,1,1,2021-01-03,33335,1236,4323,1236,2021-01-03,123456,1234,1,1
