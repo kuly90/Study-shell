@@ -18,6 +18,8 @@ echo ${numberOfTime}
 
 while read line
 do
+echo $line
+
     IFS=', ' read -ra array <<< "$line";
     tateya_id=\'${array[0]}\'
     if [ -z "$tateya_id" ]; then

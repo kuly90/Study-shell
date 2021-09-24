@@ -8,11 +8,9 @@ DECLARE
 BEGIN
     SELECT customer_id, customer_name, city BULK COLLECT INTO orderId, orderName, city
     FROM ABC.customers;
-    FOR idx IN 1..orderId.COUNT
-    LOOP
+    FORALL idx IN 1..orderId.COUNT
         INSERT ALL
-            INTO ABCDEF.orders VALUES (orderId(idx), orderName(idx), city(idx))
+            INTO orders VALUES (orderId(idx), orderName(idx), city(idx))
             INTO ABCDEF.shipers VALUES (orderId(idx), orderName(idx), city(idx))
         SELECT * FROM dual;
-    END LOOP;
 END;
