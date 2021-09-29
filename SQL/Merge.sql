@@ -194,9 +194,90 @@ MERGE INTO customers_new_2 n2
 
 --5-2) Tr??ng h?p CÓ ?ánh s? sequence, KHÔNG phát sinh update
 DECLARE
-    CURSOR dataTable IS SELECT * FROM customers_old;
+    CURSOR lstCustomer IS
+        SELECT DISTINCT o.CITY_ID FROM customers_old o;
 BEGIN
-    FOR idx IN dataTable LOOP
-        /* SQL parent */
+    For cus IN lstCustomer Loop
+        /*SQL insert parent */
+        INSERT INTO city_seq
+            SELECT DISTINCT
+                o.CITY_ID, o.CITY, 'A', SYSDATE, 'INSERT'
+            FROM customers_old o
+            WHERE o.CITY_ID = cus.CITY_ID
+        ;
+        /* SQL insert child */
+        INSERT INTO customers_new_seq
+            SELECT
+                o.CUSTOMER_OLD_ID, o.CUSTOMER_OLD_NAME, o.CITY_ID, SYSDATE, 'INSERT'
+            FROM customers_old o
+            WHERE o.CITY_ID = cus.CITY_ID
+        ;   
     END LOOP;
 END;
+
+-- 5-3 Tr??ng h?p CÓ ?ánh s? sequence, CÓ update
+SET SERVEROUTPUT ON;
+DECLARE
+    CURSOR lstCustomer IS
+        SELECT DISTINCT o.CITY_ID FROM customers_old o;
+    CITYID CHAR(3);
+BEGIN
+    For cus IN lstCustomer Loop
+        /*SQL insert parent */
+        MERGE INTO city_seq ct
+        USING
+            (
+                SELECT DISTINCT o.CITY_ID AS CITY_ID, o.CITY AS CITY_NAME
+                FROM customers_old o
+                WHERE o.CITY_ID = cus.CITY_ID    
+            ) TBL
+        ON (ct.CITY_ID = TBL.CITY_ID)
+        WHEN MATCHED THEN
+            UPDATE SET 
+                ct.CITY_NAME = TBL.CITY_NAME,
+                ct.CREATE_DATE = SYSDATE,
+                MODE_INSERT = 'UPDATE'
+        WHEN NOT MATCHED THEN
+            INSERT (ct.CITY_ID, ct.CITY_NAME, ct.COUNTRY, ct.CREATE_DATE, MODE_INSERT)
+            VALUES (TBL.CITY_ID, TBL.CITY_NAME, 'VIETNAM', SYSDATE, 'INSERT')
+        ;
+        /*Get ID ?ã insert ? SQL c?a parent */
+       -- SELECT ct.CITY_ID INTO CITYID
+        --FROM city_seq ct
+        --WHERE ct.CITY_ID = cus.CITY_ID
+        --; 
+        /* SQL insert child */
+        MERGE INTO customers_new_seq nsq
+        USING 
+            (
+                SELECT
+                    o.CUSTOMER_OLD_ID AS CUSTOMER_OLD_ID,
+                    o.CUSTOMER_OLD_NAME AS CUSTOMER_OLD_NAME,
+                    o.CITY_ID AS CITY_ID
+                FROM customers_old o
+                WHERE o.CITY_ID = cus.CITY_ID 
+            ) TBL
+        ON (nsq.CITY_ID = TBL.CITY_ID AND
+            nsq.CUSTOMER_NEW_ID = TBL.CUSTOMER_OLD_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                nsq.CUSTOMER_NEW_NAME = TBL.CUSTOMER_OLD_NAME,
+                nsq.UPDATE_DATE = SYSDATE,
+                nsq.MODE_INSERT = 'UPDATE'
+        WHEN NOT MATCHED THEN
+            INSERT (nsq.CUSTOMER_NEW_ID, nsq.CUSTOMER_NEW_NAME, nsq.CITY_ID, nsq.UPDATE_DATE, nsq.MODE_INSERT)
+            VALUES (TBL.CUSTOMER_OLD_ID, TBL.CUSTOMER_OLD_NAME, TBL.CITY_ID, SYSDATE, 'INSERT')
+            ;
+    END LOOP;
+END;
+
+
+select * from customers_old;
+select * from city_seq;
+select * from customers_new_seq;
+
+delete  from customers_new_seq;
+delete  from city_seq;
+
+
+
