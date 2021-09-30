@@ -214,6 +214,38 @@ BEGIN
         ;   
     END LOOP;
 END;
+---------------------------------------------
+DECLARE
+    CURSOR lstCustomer IS
+        SELECT DISTINCT o.CITY_ID FROM customers_old o;
+    CITYID_ALL CHAR(3);
+BEGIN
+    For cus IN lstCustomer Loop
+    CITYID_ALL := TO_CHAR(CUST_SEQ.nextval);
+        /*SQL insert parent */
+        INSERT INTO city_seq
+            SELECT DISTINCT
+                CITYID_ALL, o.CITY, 'A', SYSDATE, 'INSERT'
+            FROM customers_old o
+            WHERE o.CITY_ID = cus.CITY_ID
+        ;
+        /* SQL insert child */
+        INSERT INTO customers_new_seq
+            SELECT
+                o.CUSTOMER_OLD_ID, o.CUSTOMER_OLD_NAME, CITYID_ALL, SYSDATE, 'INSERT'
+            FROM customers_old o
+            WHERE o.CITY_ID = cus.CITY_ID
+        ;   
+    END LOOP;
+END;
+
+select * from customers_old;
+select * from city_seq;
+select * from customers_new_seq;
+
+delete  from customers_new_seq;
+delete  from city_seq;
+
 
 -- 5-3 Tr??ng h?p CÓ ?ánh s? sequence, CÓ update
 SET SERVEROUTPUT ON;
@@ -242,10 +274,10 @@ BEGIN
             VALUES (TBL.CITY_ID, TBL.CITY_NAME, 'VIETNAM', SYSDATE, 'INSERT')
         ;
         /*Get ID ?ã insert ? SQL c?a parent */
-       -- SELECT ct.CITY_ID INTO CITYID
-        --FROM city_seq ct
-        --WHERE ct.CITY_ID = cus.CITY_ID
-        --; 
+        SELECT ct.CITY_ID INTO CITYID
+        FROM city_seq ct
+        WHERE ct.CITY_ID = cus.CITY_ID
+        ; 
         /* SQL insert child */
         MERGE INTO customers_new_seq nsq
         USING 
@@ -271,6 +303,73 @@ BEGIN
     END LOOP;
 END;
 
+
+
+
+-- 5-4)
+DECLARE
+    CURSOR lstCustomer IS
+        SELECT DISTINCT
+            o.CITY_ID AS CITY_ID,
+            ct.CITY_ID AS IDPR
+        FROM customers_old o
+        LEFT OUTER JOIN city_seq ct
+        ON o.CITY_ID = ct.CITY_ID
+        ORDER BY IDPR;
+BEGIN
+    For cus IN lstCustomer Loop
+    /*N?u ko có ID thì ?ánh s? t? sequence*/
+    IF ( cus.IDPR is null ) THEN
+        cus.IDPR := TO_CHAR(CUST_SEQ.nextval);
+    END IF;
+        /*SQL insert parent */
+        MERGE INTO city_seq ct
+        USING 
+            (
+                SELECT DISTINCT
+                    o.CITY_ID AS CITY_ID,
+                    o.CITY AS CITY_NAME
+                FROM customers_old o
+                WHERE o.CITY_ID = cus.CITY_ID
+            ) TBL
+        ON (ct.CITY_ID = TBL.CITY_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                ct.CITY_NAME = TBL.CITY_NAME,
+                ct.COUNTRY = 'CITY',
+                ct.CREATE_DATE = SYSDATE,
+                ct.MODE_INSERT = 'UPDATE'
+        WHEN NOT MATCHED THEN
+        INSERT (ct.CITY_ID, ct.CITY_NAME, ct.COUNTRY, ct.CREATE_DATE, ct.MODE_INSERT)
+        VALUES (cus.IDPR, TBL.CITY_NAME, 'CITY', SYSDATE, 'INSERT')
+        ;
+        /* SQL insert child */
+        MERGE INTO customers_new_seq nsq
+            USING 
+            (
+                SELECT
+                    o.CITY_ID AS CITY_ID,
+                    o.CUSTOMER_OLD_ID AS CUSTOMER_OLD_ID,
+                    o.CUSTOMER_OLD_NAME AS CUSTOMER_OLD_NAME
+                FROM customers_old o
+                WHERE o.CITY_ID = cus.CITY_ID
+            ) TBL
+        ON (nsq.CITY_ID = TBL.CITY_ID AND
+            nsq.CUSTOMER_NEW_ID = TBL.CUSTOMER_OLD_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                nsq.CUSTOMER_NEW_NAME = TBL.CUSTOMER_OLD_NAME,
+                nsq.UPDATE_DATE = SYSDATE,
+                nsq.MODE_INSERT = 'UPDATE'
+        WHEN NOT MATCHED THEN
+        INSERT (nsq.CUSTOMER_NEW_ID, nsq.CUSTOMER_NEW_NAME, nsq.CITY_ID, nsq.UPDATE_DATE, nsq.MODE_INSERT)
+        VALUES (TBL.CUSTOMER_OLD_ID, TBL.CUSTOMER_OLD_NAME, cus.IDPR, SYSDATE, 'INSERT')
+        ;
+    END LOOP;
+END;
+
+INSERT INTO city_seq VALUES ('NEW', 'A','','','');
+INSERT INTO customers_new_seq VALUES ('OLD005','A','NEW','','');
 
 select * from customers_old;
 select * from city_seq;
